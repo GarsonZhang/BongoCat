@@ -47,6 +47,9 @@ export function useDevice() {
   const catStore = useCatStore()
   const modelStore = useModelStore()
 
+  // 存储每个按键的定时器
+  const keyTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
   watch(() => modelStore.currentModel, async (model) => {
     if (!model) return
 
@@ -97,12 +100,31 @@ export function useDevice() {
     } else {
       array.value = uniq(array.value.concat(value))
     }
+
+    // 重置定时器
+    const existingTimer = keyTimers.get(value)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+
+    // 设置新的定时器
+    const timer = setTimeout(() => {
+      handleRelease(array, value)
+      keyTimers.delete(value)
+    }, 10000)
+    keyTimers.set(value, timer)
   }
 
   const handleRelease = (array: Ref<string[]>, value?: string) => {
     if (!value) return
 
     array.value = array.value.filter(item => item !== value)
+    // 清除定时器
+    const timer = keyTimers.get(value)
+    if (timer) {
+      clearTimeout(timer)
+      keyTimers.delete(value)
+    }
   }
 
   const getSupportedKey = (key: string) => {
